@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligence Map - Rante Kalua</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --glass: rgba(15, 23, 42, 0.75);
+            --border: rgba(255, 255, 255, 0.12);
+            --accent-blue: #0ea5e9;
+            --accent-amber: #f59e0b;
+            --text-main: #f8fafc;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            height: 100%; width: 100%;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #020617;
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* --- GLASS UI COMPONENTS --- */
+
+        /* Header Modern */
+        .main-header {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border);
+            padding: 12px 35px;
+            border-radius: 100px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            text-align: center;
+            width: fit-content;
+            white-space: nowrap;
+        }
+
+        .main-header h1 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            background: linear-gradient(to right, #fff, var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Side Intelligence Panel */
+        .intel-panel {
+            position: absolute;
+            top: 100px;
+            left: 25px;
+            width: 380px;
+            z-index: 1000;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            padding: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .tag {
+            background: rgba(14, 165, 233, 0.15);
+            color: var(--accent-blue);
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border: 1px solid rgba(14, 165, 233, 0.3);
+        }
+
+        h2 {
+            font-size: 28px;
+            margin: 15px 0 10px 0;
+            font-weight: 800;
+        }
+
+        .description {
+            font-size: 13px;
+            line-height: 1.7;
+            color: rgba(248, 250, 252, 0.7);
+            margin-bottom: 25px;
+            padding-left: 15px;
+            border-left: 2px solid var(--accent-blue);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 16px;
+            transition: 0.3s;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--accent-blue);
+        }
+
+        .stat-card i {
+            color: var(--accent-amber);
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .stat-card label {
+            display: block;
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+        }
+
+        .stat-card span {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .btn-focus {
+            width: 100%;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: 0.3s;
+        }
+
+        .btn-focus:hover {
+            filter: brightness(1.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(14, 165, 233, 0.3);
+        }
+
+        /* Border Glow Effect Map */
+        #map::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border: 15px solid rgba(15, 23, 42, 0.4);
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* Custom Leaflet Controls */
+        .leaflet-control-zoom {
+            border: none !important;
+            margin-right: 30px !important;
+        }
+        .leaflet-control-zoom-in, .leaflet-control-zoom-out {
+            background: var(--glass) !important;
+            color: white !important;
+            border: 1px solid var(--border) !important;
+            backdrop-filter: blur(10px);
+            border-radius: 8px !important;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="main-header">
+        <h1>Geospatial Intelligence Dashboard v2.0</h1>
+    </header>
+
+    <aside class="intel-panel">
+        <span class="tag"><i class="fa-solid fa-satellite"></i> Live Data Access</span>
+        <h2>Rante Kalua</h2>
+        <div class="description">
+            Visualisasi spasial presisi tinggi untuk wilayah Kelurahan Rante Kalua, Kecamatan Mengkendek. Data mengintegrasikan batas administrasi resmi dengan pemetaan infrastruktur terkini di Kabupaten Tana Toraja.
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fa-solid fa-map-location-dot"></i>
+                <label>Kecamatan</label>
+                <span>Mengkendek</span>
+            </div>
+            <div class="stat-card">
+                <i class="fa-solid fa-mountain-sun"></i>
+                <label>Kabupaten</label>
+                <span>Tana Toraja</span>
+            </div>
+            <div class="stat-card">
+                <i class="fa-solid fa-chart-area"></i>
+                <label>Status Area</label>
+                <span>Terverifikasi</span>
+            </div>
+            <div class="stat-card">
+                <i class="fa-solid fa-database"></i>
+                <label>Sumber Data</label>
+                <span>SIGMAR 2026</span>
+            </div>
+        </div>
+
+        <button class="btn-focus" onclick="flyToTarget()">
+            <i class="fa-solid fa-crosshairs"></i> Fokus Wilayah Makro
+        </button>
+    </aside>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="./index_files/ADMINISTRASIKECAMATAN_AR_50K_1.js"></script>
+
+    <script>
+        // Inisialisasi Map (Koordinat Tana Toraja)
+        var map = L.map('map', {
+            zoomControl: false,
+            maxZoom: 28
+        }).setView([-3.125, 119.850], 12);
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // Base Layer Hybrid (Satellite)
+        var googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            opacity: 1.0,
+            attribution: '© Google Satellite'
+        }).addTo(map);
+
+        // Style GeoJSON (Cyber Neon Border)
+        function styleArea() {
+            return {
+                color: '#0ea5e9',
+                weight: 3,
+                dashArray: '5, 10',
+                fillColor: '#0ea5e9',
+                fillOpacity: 0.15,
+                lineCap: 'round'
+            };
+        }
+
+        // Memasukkan data asli file YULIANDA SIGMAR
+        var areaLayer = L.geoJson(json_ADMINISTRASIKECAMATAN_AR_50K_1, {
+            style: styleArea,
+            onEachFeature: function(feature, layer) {
+                var popupContent = `
+                    <div style="background: #0f172a; color: white; padding: 10px; border-radius: 10px;">
+                        <strong style="color: #0ea5e9">DATA WILAYAH</strong><br>
+                        Kecamatan: ${feature.properties.NAMOBJ || 'Mengkendek'}
+                    </div>`;
+                layer.bindPopup(popupContent, {closeButton: false});
+                
+                layer.on('mouseover', function() {
+                    this.setStyle({ fillOpacity: 0.4, weight: 5, dashArray: '' });
+                });
+                layer.on('mouseout', function() {
+                    areaLayer.resetStyle(this);
+                });
+            }
+        }).addTo(map);
+
+        // Auto-zoom ke data
+        if (areaLayer.getBounds().isValid()) {
+            map.fitBounds(areaLayer.getBounds());
+        }
+
+        function flyToTarget() {
+            map.flyTo([-3.125, 119.850], 14, {
+                duration: 2.5,
+                easeLinearity: 0.25
+            });
+        }
+    </script>
+</body>
+</html>
